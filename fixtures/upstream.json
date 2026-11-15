@@ -1,0 +1,33 @@
+{
+  "catalog": {
+    "entry": "/primary",
+    "symbolServices": {
+      "build-A": "/symbols/build-A",
+      "build-B": "/symbols/build-B"
+    },
+    "profiles": [
+      "/primary",
+      "/profiles/other"
+    ]
+  },
+  "resources": {
+    "/primary": {
+      "file": "primary.bin",
+      "type": "application/octet-stream"
+    },
+    "/profiles/other": {
+      "file": "resource-01.bin",
+      "type": "application/octet-stream"
+    },
+    "/symbols/build-A": {
+      "file": "resource-02.bin",
+      "type": "application/json",
+      "protocol": "symbol"
+    },
+    "/symbols/build-B": {
+      "file": "resource-03.bin",
+      "type": "application/json",
+      "protocol": "symbol"
+    }
+  }
+}

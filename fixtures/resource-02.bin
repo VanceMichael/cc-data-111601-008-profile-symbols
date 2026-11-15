@@ -1,0 +1,1 @@
+{"buildId":"build-A","addresses":{"32":{"lines":[{"function":"inner","file":"a.cc","line":12},{"function":"outer","file":"b.cc","line":20}]}},"missing":["48"],"limit":2}
