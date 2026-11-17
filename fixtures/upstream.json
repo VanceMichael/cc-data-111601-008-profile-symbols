@@ -7,7 +7,8 @@
     },
     "profiles": [
       "/primary",
-      "/profiles/other"
+      "/profiles/other",
+      "/profiles/mixed"
     ]
   },
   "resources": {
@@ -17,6 +18,10 @@
     },
     "/profiles/other": {
       "file": "resource-01.bin",
+      "type": "application/octet-stream"
+    },
+    "/profiles/mixed": {
+      "file": "resource-04.bin",
       "type": "application/octet-stream"
     },
     "/symbols/build-A": {
