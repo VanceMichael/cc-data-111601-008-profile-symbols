@@ -12,6 +12,13 @@ try {
   const response = await fetch(`${service.url}/intakes`, { method: 'POST',
     headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: '/primary' }) });
   if (response.status !== 201) throw new Error(await response.text());
-  console.log('接收结果', await response.json());
+  const record = await response.json();
+  console.log('接收结果', record);
+  const explained = await fetch(`${service.url}/explanations`, { method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify({ record: record.id }) });
+  if (!explained.ok) throw new Error(await explained.text());
+  const explanation = await explained.json();
+  console.log('解释结果', explanation.symbolization);
+  console.log('内联调用链', explanation.locations[0].lines);
   console.log('已保存资料', await (await fetch(`${service.url}/records`)).json());
 } finally { await service.close(); await provider.close(); await rm(directory, { recursive: true, force: true }); }

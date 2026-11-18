@@ -4,9 +4,9 @@
 
 ## 当前能力
 
-已有 pprof protobuf 样本表及映射原样接收，不调用符号服务。
+已有 pprof protobuf 样本表及映射原样接收，并按映射中的 `buildId` 到合作方符号服务补领位置与内联调用链。补领只填充 `location.lines`，不合并样本、不改 `sample.value`、取值类型、标签或采样次数，也不产生火焰图或热点结论。
 
-`src/reader.mjs` 提供现有单件读取契约；`src/transport.mjs` 只访问配置来源的同源地址，拒绝隐式跳转；`src/store.mjs` 保存原件摘要和解释结果。`src/service.mjs` 是产品入口，`src/provider.mjs` 是独立 HTTP 联调来源，内容为无个人信息的本地样例。
+`src/reader.mjs` 提供单件读取契约与结构化解码；`src/symbols.mjs` 按构建身份分组、按重定位公式计算对象地址并分批补领；`src/transport.mjs` 只访问配置来源的同源地址，拒绝隐式跳转；`src/store.mjs` 保存原件摘要、解释结果；`src/service.mjs` 是产品入口，`src/provider.mjs` 是独立 HTTP 联调来源，内容为无个人信息的本地样例。
 
 ## 环境与运行
 
@@ -19,7 +19,7 @@ npm run build
 npm run demo
 ```
 
-`npm run demo` 自动在本机回环端口启动来源与产品、领取一件资料、读取已保存结果，然后关闭服务并清理临时目录。它展示当前产品能力，不模拟尚不存在的能力。演示没有固定等待、外网访问或人工操作，通常数秒结束。扩展产品后可按实际能力更新演示路径；不要以打印预先保存的结果替代运行。
+`npm run demo` 自动在本机回环端口启动来源与产品、领取一件资料、按构建身份补领符号并读取已保存结果，然后关闭服务并清理临时目录。它展示当前产品能力，不模拟尚不存在的能力。演示没有固定等待、外网访问或人工操作，通常数秒结束。扩展产品后可按实际能力更新演示路径；不要以打印预先保存的结果替代运行。
 
 直接 `npm start` 即可启动产品，默认自动在临时回环端口创建本地合成来源，产品默认监听 127.0.0.1:4102。退出产品时同步关闭自带来源。需要联调独立来源时先运行 `npm run source`，再设置 SOURCE_URL=http://127.0.0.1:4101 运行 `npm start`；显式来源不会由产品关闭。DATA_DIR 可设置资料目录，PORT 可覆盖产品监听端口。构建产物位于 dist，启动、测试与演示均不需要外部服务或下载。
 
@@ -32,10 +32,17 @@ npm run demo
 
 这四项是兼容接口，后续扩展可以新增业务入口，但不能把 GET 请求变为写操作。收件记录当前只包含单件 raw 对象，不代表关联资料已完整。
 
+## 符号解释
+
+- POST /explanations，JSON 为 {"record":"<收件 id 或摘要>"}：读取已保存原件，按 `mapping.buildId` 路由到 `/catalog` 声明的符号服务，补领位置和内联链后持久保存。
+- GET /explanations/{收件 id 或摘要}：读取已保存的完整解释结果（含样本、取值类型、标签与位置）。
+
+返回中的 `symbolization.status` 为 `complete`、`partial` 或 `unresolved`；`applied` 列出已解释位置及其 build id；`unresolved` 逐条给出位置、build id、地址与原因（如 `address_missing`、`address_not_returned`、`missing_build_id`、`no_mapping`、`address_outside_mapping`、`request_failed`、`no_symbol_service`）。服务每次最多请求 2 个不同地址，产品按此上限分批；部分覆盖不影响其他位置的补领。再次补领保留已有内联层次，不把位置重置为空链。
+
 ## 来源与资料
 
 交换范围、字段和边界见 [来源约定](docs/upstream.md)，样例资源清单可访问来源的 /catalog。`fixtures/upstream.json` 描述 HTTP 资源和阶段变体，不包含产品实现。GET /_requests 可查实际领取请求；POST /_phase 接收 {"phase":1} 切换已定义的来源状态，切回 0 恢复。所有资料都限于公开约定或本地合成数据，不向真实业务系统写入。
 
 ## 测试与构建
 
-`npm test` 覆盖现有读取器、畸形输入、真实 HTTP 领取、原件一致性、持久重开、同源边界和范围响应；领域读取行为在 test/domain.test.mjs。`npm run build` 对运行模块逐个执行语法校验并复制到 dist。`docker build -t profile-symbols:local .` 可创建产品运行镜像；镜像默认运行实际演示，不含远程业务凭据。
+`npm test` 覆盖现有读取器、结构化解码、畸形输入、真实 HTTP 领取、原件一致性、持久重开、同源边界和范围响应；符号补领的领域行为在 test/symbols.test.mjs，端到端解释与内联链保持见 test/explain.test.mjs。`npm run build` 对运行模块逐个执行语法校验并复制到 dist。`docker build -t profile-symbols:local .` 可创建产品运行镜像；镜像默认运行实际演示，不含远程业务凭据。

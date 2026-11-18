@@ -9,6 +9,7 @@ export class Store {
   }
   async initialize() {
     await mkdir(join(this.directory, 'objects'), { recursive: true });
+    await mkdir(join(this.directory, 'symbols'), { recursive: true });
     try { await this.list(); } catch (error) {
       if (error.code !== 'ENOENT') throw error;
       await this.saveIndex([]);
@@ -41,5 +42,21 @@ export class Store {
   async object(digest) {
     if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error('invalid_digest');
     return readFile(join(this.directory, 'objects', digest));
+  }
+  async loadSymbols(digest) {
+    if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error('invalid_digest');
+    try { return JSON.parse(await readFile(join(this.directory, 'symbols', `${digest}.json`), 'utf8')); }
+    catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  }
+  async saveSymbols(digest, result) {
+    if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error('invalid_digest');
+    const temporary = join(this.directory, `symbols-${randomUUID()}.tmp`);
+    await writeFile(temporary, JSON.stringify(result));
+    await rename(temporary, join(this.directory, 'symbols', `${digest}.json`));
+    return result;
+  }
+  async find(idOrDigest) {
+    const records = await this.list();
+    return records.find(record => record.id === idOrDigest || record.digest === idOrDigest) ?? null;
   }
 }

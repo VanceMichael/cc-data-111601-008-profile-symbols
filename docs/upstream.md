@@ -4,6 +4,15 @@
 
 pprof profile.proto 支持 string_table、sample_type、sample、mapping、location、function 常用字段；varint、packed 数值和 unknown fields 按 protobuf wire type 保留/跳过。/catalog 给出 buildId 到符号服务的路由，GET 符号服务接受 addresses=以逗号分隔的十进制对象地址，每次最多 2 个不同地址；返回 addresses 字典和 missing。对象地址为 location.address - mapping.memory_start + mapping.file_offset，映射区间左闭右开。buildId 对应 string_table 项，不能按文件名合并。地址和样本整数允许超过 JS 安全整数，应采用精确表示。lines 按服务返回内联链顺序保留。符号补领不能改变 sample.value、label 和采样次数，不做火焰图或热点分析。
 
+## 补领行为
+
+- 位置按 `mapping.buildId` 分组；同一文件名不同 buildId 是不同组，分别请求各自服务。`buildId` 为空的映射不猜测路由。
+- 请求地址按重定位公式计算并在映射半开区间内校验；不满足的地址直接列入未解释，不发出请求。
+- 每次请求最多 2 个不同地址；更大集合由产品分批。
+- 响应 `addresses` 未覆盖的地址若在 `missing` 中记为 `address_missing`，否则记为 `address_not_returned`；`missing` 之外的缺失地址与批次失败都逐位置记录，不静默丢弃。
+- `lines` 原样按内联链顺序写入；已有 `lines` 的位置视为已解释，后续补领不重置、不拆分已有层次。
+- 解释结果只更新 location，sample_type、sample.value、label 与采样顺序保持原件值。
+
 ## 当前来源路由
 
 - `/primary`：application/octet-stream
